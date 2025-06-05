@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html ng-app="labyrinthApp">
+
+<head>
+    <title>Labyrinth Spiel</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        body {
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+
+        .maze-container {
+            background: #2a2a2a;
+            padding: 30px;
+            border-radius: 8px;
+            max-width: 800px;
+            margin: 20px auto;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .maze-row {
+            display: flex;
+            justify-content: center;
+        }
+
+        .maze-cell {
+            width: 25px;
+            height: 25px;
+            border: 1px solid #333;
+            background-color: #2a2a2a;
+            transition: all 0.2s;
+            margin: 1px;
+        }
+
+        .wall {
+            background-color: #4a4a4a !important;
+        }
+
+        .player {
+            background-color: #e74c3c !important;
+            border-radius: 50%;
+            transform: scale(0.8);
+        }
+
+        .goal {
+            background-color: #2ecc71 !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(0.9);
+            }
+        }
+
+        .difficulty-group {
+            margin-bottom: 25px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .difficulty-btn {
+            background: #404040;
+            color: #fff;
+            border: 2px solid #555;
+            padding: 10px 20px;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn.active {
+            background: #00c851;
+            border-color: #00c851;
+            box-shadow: 0 0 15px rgba(0, 200, 81, 0.3);
+        }
+
+        .music-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .new-game-btn {
+            background: #3498db;
+            border-color: #2980b9;
+        }
+
+        .volume-slider {
+            width: 120px;
+            background: #404040;
+            height: 5px;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            background: #00c851;
+            border-radius: 50%;
+        }
+
+        .music-btn {
+            background: none;
+            border: 2px solid #00c851;
+            color: #00c851;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            transition: all 0.3s;
+        }
+      
+      .steuerung {
+    width: 60%;
+    font-size: 16px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.steuerung > p {
+    text-align: center;
+    width: 60%;
+    font-size: 14px;
+}
+
+.st_inner {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    width: 60%;
+    position: relative;
+    top: -6px;
+}
+
+span.steuerung_top {
+    transform: rotate(-90deg);
+    font-size: 20px;
+    position: relative;
+}
+
+span.st_002 {
+    transform: rotate(-180deg);
+    display: inline-flex;
+    position: relative;
+    top: -2px;
+}
+span.st_003 {
+    transform: rotate(90deg);
+    display: inline-flex;
+    position: relative;
+    top: 2px;
+}
+
+span.steuerung_bottom {
+    font-size: 20px;
+    padding: 0;
+    position: relative;
+    top: -5px;
+}
+
+      .btn {
+        border-radius: 100px;
+      }
+    </style>
+</head>
+
+<body ng-controller="MazeController" ng-click="focusGame()">
+    <div class="maze-container" id="gameContainer" tabindex="0" game-keys>
+        <div class="flex-container" style="display: flex; gap: 10px; margin-bottom: 20px;">
+            <div class="difficulty-group btn-group">
+                <button type="button" class="btn difficulty-btn" ng-class="{active: difficulty === '15'}"
+                    ng-click="setDifficulty('15')">
+                    <i class="fa fa-smile-o"></i> Einfach
+                </button>
+                <button type="button" class="btn difficulty-btn" ng-class="{active: difficulty === '21'}"
+                    ng-click="setDifficulty('21')">
+                    <i class="fa fa-meh-o"></i> Mittel
+                </button>
+                <button type="button" class="btn difficulty-btn" ng-class="{active: difficulty === '27'}"
+                    ng-click="setDifficulty('27')">
+                    <i class="fa fa-frown-o"></i> Schwer
+                </button>
+            </div>
+            <button class="btn btn-primary new-game-btn" ng-click="init()">
+                <i class="fa fa-refresh"></i> Neues Spiel
+            </button>
+          <div class="steuerung">
+          <p>Steuerung über Pfeiltasten</p>
+            <div class="st_inner">
+              <span class="steuerung_top">
+                <span class="st_001">➔</span>
+              </span>
+              <span class="steuerung_bottom">
+                <span class="st_002">➔</span>
+                <span class="st_003">➔</span>
+                <span class="st_004">➔</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-info text-center">
+            <h3>⏱ {{time | formatTime}} | 🏃 {{moves}} Züge</h3>
+            <audio id="backgroundMusic" loop>
+                <source ng-src="{{currentMusic}}" type="audio/mpeg">
+            </audio>
+        </div>
+
+        <div class="music-controls">
+            <button class="btn music-btn" ng-click="toggleMusic()">
+                <i class="fa" ng-class="musicPlaying ? 'fa-pause' : 'fa-play'"></i>
+            </button>
+            <input type="range" class="volume-slider" min="0" max="1" step="0.01" ng-model="volume"
+                ng-change="setVolume()">
+        </div>
+
+        <div ng-repeat="row in maze track by $index" class="maze-row">
+            <div ng-repeat="cell in row track by $index" class="maze-cell" ng-class="{
+                     'wall': cell === 1,
+                     'player': $parent.$index === playerPos.x && $index === playerPos.y,
+                     'goal': $parent.$index === goalPos.x && $index === goalPos.y
+                 }">
+            </div>
+        </div>
+
+        <div ng-if="gameWon" class="alert alert-success mt-3">
+            <h4>🎉 Gewonnen in {{time | formatTime}} und {{moves}} Zügen!</h4>
+            <button class="btn btn-primary" ng-click="init()">Neues Spiel</button>
+        </div>
+      <div>
+        <p>Steuerung</p>
+        <s
+      </div>
+    </div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+    <script>
+        angular.module('labyrinthApp', [])
+            .filter('formatTime', function () {
+                return function (seconds) {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                };
+            })
+            .controller('MazeController', ['$scope', '$document', '$timeout', '$interval',
+                function ($scope, $document, $timeout, $interval) {
+                    // Musik-URLs
+                    $scope.musicUrls = [
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3',
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3',
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3',
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3',
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3',
+                        'https://files.freemusicarchive.org/storage-freemusicarchive-org/music/Music_for_Video/springtide/Sounds_strange_weird_but_unmistakably_romantic_Vol1/springtide_-_03_-_We_Are_Heading_to_the_East.mp3'
+                    ];
+
+                    // Initialisierung
+                    $scope.difficulty = '21';
+                    $scope.musicPlaying = false; // true; 
+                    $scope.volume = 0.02;
+                    $scope.currentMusic = '';
+                    let timerPromise;
+
+                    // Zufällige Musikauswahl
+                    $scope.selectRandomMusic = function () {
+                        const randomIndex = Math.floor(Math.random() * $scope.musicUrls.length);
+                        $scope.currentMusic = $scope.musicUrls[randomIndex] + '?v=' + Date.now();
+                    };
+
+                    // Lautstärke-Steuerung
+                    $scope.setVolume = function () {
+                        const music = $document[0].getElementById('backgroundMusic');
+                        if (music) music.volume = $scope.volume;
+                    };
+
+                    // Schwierigkeitsgrad
+                    $scope.setDifficulty = function (size) {
+                        $scope.difficulty = size;
+                        $scope.init();
+                    };
+
+                    // Musik-Steuerung
+                    $scope.toggleMusic = function () {
+                        const music = $document[0].getElementById('backgroundMusic');
+                        $scope.musicPlaying = !$scope.musicPlaying;
+                        if ($scope.musicPlaying) {
+                            music.play();
+                        } else {
+                            music.pause();
+                        }
+                    };
+
+                    // Labyrinth-Generator
+                    function generateMaze(size) {
+                        let grid = Array(size).fill().map(() => Array(size).fill(1));
+                        let stack = [];
+                        let start = { x: 1, y: 1 };
+
+                        grid[start.x][start.y] = 0;
+                        stack.push(start);
+
+                        const dirs = [
+                            { dx: -2, dy: 0 },
+                            { dx: 2, dy: 0 },
+                            { dx: 0, dy: -2 },
+                            { dx: 0, dy: 2 }
+                        ];
+
+                        while (stack.length > 0) {
+                            let current = stack.pop();
+                            dirs.sort(() => Math.random() - 0.5);
+
+                            dirs.forEach(dir => {
+                                let nx = current.x + dir.dx;
+                                let ny = current.y + dir.dy;
+
+                                if (nx > 0 && ny > 0 && nx < size - 1 && ny < size - 1 && grid[nx][ny] === 1) {
+                                    grid[nx][ny] = 0;
+                                    grid[current.x + dir.dx / 2][current.y + dir.dy / 2] = 0;
+                                    stack.push(current);
+                                    stack.push({ x: nx, y: ny });
+                                }
+                            });
+                        }
+
+                        grid[1][1] = 0;
+                        grid[size - 2][size - 2] = 0;
+                        return grid;
+                    }
+
+                    // Spielinitialisierung
+                    $scope.init = function () {
+                        const size = parseInt($scope.difficulty);
+                        $scope.maze = generateMaze(size);
+                        $scope.playerPos = { x: 1, y: 1 };
+                        $scope.moves = 0;
+                        $scope.time = 0;
+                        $scope.goalPos = { x: size - 2, y: size - 2 };
+                        $scope.gameWon = false;
+
+                        // Musik neu laden
+                        $scope.selectRandomMusic();
+                        const music = $document[0].getElementById('backgroundMusic');
+
+                        $timeout(() => {
+                            music.pause();
+                            music.load();
+                            music.volume = 0.02;
+                            if ($scope.musicPlaying) {
+                                music.play().catch(error => console.log('Autoplay prevented'));
+                            }
+                        }, 100);
+
+                        // Timer
+                        if (timerPromise) $interval.cancel(timerPromise);
+                        timerPromise = $interval(() => $scope.time++, 1000);
+
+                        // Fokus setzen
+                        $timeout(() => $document[0].getElementById('gameContainer').focus(), 100);
+                    };
+
+                    // Spielsteuerung
+                    $scope.handleKeyEvent = function (event) {
+                        if ($scope.gameWon) return;
+                        event.preventDefault();
+
+                        let newPos = { ...$scope.playerPos };
+                        switch (event.key) {
+                            case 'ArrowLeft': newPos.y--; break;
+                            case 'ArrowUp': newPos.x--; break;
+                            case 'ArrowRight': newPos.y++; break;
+                            case 'ArrowDown': newPos.x++; break;
+                            default: return;
+                        }
+
+                        if (this.isValidMove(newPos.x, newPos.y)) {
+                            $scope.playerPos = newPos;
+                            $scope.moves++;
+
+                            if (newPos.x === $scope.goalPos.x && newPos.y === $scope.goalPos.y) {
+                                $scope.gameWon = true;
+                                $interval.cancel(timerPromise);
+                                confetti({
+                                    particleCount: 200,
+                                    spread: 100,
+                                    origin: { y: 0.6 },
+                                    colors: ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff']
+                                });
+                            }
+                        }
+                    };
+
+                    $scope.isValidMove = function (x, y) {
+                        return x >= 0 && y >= 0 &&
+                            x < $scope.maze.length &&
+                            y < $scope.maze[0].length &&
+                            $scope.maze[x][y] === 0;
+                    };
+
+                    $scope.focusGame = () => $document[0].getElementById('gameContainer').focus();
+                    $scope.init();
+                }])
+            .directive('gameKeys', () => ({
+                restrict: 'A',
+                link: (scope, element) => {
+                    element.on('keydown', (event) => {
+                        scope.$apply(() => scope.handleKeyEvent(event));
+                    });
+                }
+            }));
+    </script>
+</body>
+
+</html>
