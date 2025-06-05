@@ -8,3 +8,6 @@ you can make the following settings in the labyrinth game:
 - player control via the arrow keys
 
 
+Play the labyrinth game on your desktop:
+https://ctacont.github.io/labyrinth_game/
+
